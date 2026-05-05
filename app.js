@@ -1,9 +1,9 @@
 // Supabase 配置
-const SUPABASE_URL = 'https://smdlwaoqfrrubiahnnh.supabase.co';
+const SUPABASE_URL = 'https://smdlwaoqfrrubiahnnh.client.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_UvNzTQcNqVDIywhcaYwaIQ_z5Hcv0p-';
 
 // 初始化 Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const client = client.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 应用状态
 const app = {
@@ -338,14 +338,14 @@ async function handleAuth(event) {
   
   try {
     if (app.isLogin) {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await client.auth.signInWithPassword({
         email: app.email,
         password: app.password
       });
       if (error) throw error;
       app.user = data.user;
     } else {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await client.auth.signUp({
         email: app.email,
         password: app.password
       });
@@ -360,7 +360,7 @@ async function handleAuth(event) {
 }
 
 async function logout() {
-  await supabase.auth.signOut();
+  await client.auth.signOut();
   app.user = null;
   app.email = '';
   app.password = '';
@@ -398,14 +398,14 @@ async function saveWord(event) {
   
   try {
     if (app.editingWord) {
-      await supabase.from('words').update({
+      await client.from('words').update({
         word: app.newWord.word,
         phonetic: app.newWord.phonetic,
         meaning: app.newWord.meaning,
         example: app.newWord.example
       }).eq('id', app.editingWord);
     } else {
-      await supabase.from('words').insert({
+      await client.from('words').insert({
         word: app.newWord.word,
         phonetic: app.newWord.phonetic,
         meaning: app.newWord.meaning,
@@ -434,7 +434,7 @@ async function editWord(id) {
 
 async function deleteWord(id) {
   if (confirm('确定删除这个单词吗？')) {
-    await supabase.from('words').delete().eq('id', id);
+    await client.from('words').delete().eq('id', id);
     await loadWords();
     render();
   }
@@ -443,7 +443,7 @@ async function deleteWord(id) {
 async function toggleFavorite(id) {
   const word = app.words.find(w => w.id === id);
   if (word) {
-    await supabase.from('words').update({ favorite: !word.favorite }).eq('id', id);
+    await client.from('words').update({ favorite: !word.favorite }).eq('id', id);
     word.favorite = !word.favorite;
     render();
   }
@@ -503,7 +503,7 @@ async function updateWordLevel(wordId, delta) {
   const word = app.words.find(w => w.id === wordId);
   if (word) {
     const newLevel = Math.max(0, Math.min(5, (word.level || 0) + delta));
-    await supabase.from('words').update({ 
+    await client.from('words').update({ 
       level: newLevel,
       last_studied: new Date().toISOString().split('T')[0]
     }).eq('id', wordId);
@@ -514,13 +514,13 @@ async function updateWordLevel(wordId, delta) {
 async function recordError(wordId) {
   const existing = app.errorWords.find(e => e.word_id === wordId);
   if (existing) {
-    await supabase.from('error_words').update({
+    await client.from('error_words').update({
       error_count: existing.error_count + 1,
       last_error_date: new Date().toISOString().split('T')[0]
     }).eq('id', existing.id);
     existing.error_count++;
   } else {
-    await supabase.from('error_words').insert({
+    await client.from('error_words').insert({
       word_id: wordId,
       error_count: 1
     });
@@ -537,12 +537,12 @@ async function updateStudyLog() {
     .single();
   
   if (existing) {
-    await supabase.from('study_log').update({
+    await client.from('study_log').update({
       words_count: existing.words_count + 1,
       correct_count: existing.correct_count + 1
     }).eq('id', existing.id);
   } else {
-    await supabase.from('study_log').insert({
+    await client.from('study_log').insert({
       study_date: today,
       words_count: 1,
       correct_count: 1
@@ -552,7 +552,7 @@ async function updateStudyLog() {
 }
 
 async function removeFromErrors(id) {
-  await supabase.from('error_words').delete().eq('id', id);
+  await client.from('error_words').delete().eq('id', id);
   await loadErrorWords();
   render();
 }
@@ -651,14 +651,14 @@ async function loadUserData() {
 
 // 初始化
 async function init() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await client.auth.getUser();
   if (user) {
     app.user = user;
     await loadUserData();
   }
   render();
   
-  supabase.auth.onAuthStateChange((_event, session) => {
+  client.auth.onAuthStateChange((_event, session) => {
     app.user = session?.user || null;
     if (app.user) {
       loadUserData();
