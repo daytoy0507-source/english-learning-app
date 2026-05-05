@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英语学习助手</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="container" id="app">
+    <!-- 登录/注册表单 -->
+    <div v-if="!user" class="auth-form">
+      <div class="logo">📚</div>
+      <h1>英语学习助手</h1>
+      <p class="subtitle">轻松背单词，快乐学英语</p>
+      
+      <div class="tabs">
+        <button :class="['tab-btn', { active: isLogin }]" @click="isLogin = true">登录</button>
+        <button :class="['tab-btn', { active: !isLogin }]" @click="isLogin = false">注册</button>
+      </div>
+
+      <form @submit.prevent="handleAuth">
+        <div class="form-group">
+          <input type="email" v-model="email" placeholder="邮箱地址" required>
+        </div>
+        <div class="form-group">
+          <input type="password" v-model="password" placeholder="密码" required>
+        </div>
+        <button type="submit" class="btn-primary">
+          {{ isLogin ? '登录' : '注册' }}
+        </button>
+      </form>
+
+      <p v-if="error" class="error">{{ error }}</p>
+    </div>
+
+    <!-- 已登录界面 -->
+    <div v-else class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <span class="logo-text">📚 英语学习助手</span>
+        </div>
+        <div class="header-right">
+          <span class="user-info">👤 {{ user.email }}</span>
+          <button class="btn-logout" @click="logout">退出</button>
+        </div>
+      </header>
+
+      <nav class="nav">
+        <button :class="['nav-btn', { active: currentPage === 'home' }]" @click="currentPage = 'home'">🏠 首页</button>
+        <button :class="['nav-btn', { active: currentPage === 'words' }]" @click="currentPage = 'words'">📖 单词本</button>
+        <button :class="['nav-btn', { active: currentPage === 'study' }]" @click="currentPage = 'study'">📝 背诵</button>
+        <button :class="['nav-btn', { active: currentPage === 'errors' }]" @click="currentPage = 'errors'">❌ 错题本</button>
+        <button :class="['nav-btn', { active: currentPage === 'video' }]" @click="currentPage = 'video'">🎬 视频跟读</button>
+      </nav>
+
+      <!-- 首页 -->
+      <div v-if="currentPage === 'home'" class="page-content">
+        <h2>📊 学习统计</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number">{{ totalWords }}</div>
+            <div class="stat-label">单词总数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ todayCount }}</div>
+            <div class="stat-label">今日学习</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ streakDays }}</div>
+            <div class="stat-label">连续打卡</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ masteredWords }}</div>
+            <div class="stat-label">已掌握</div>
+          </div>
+        </div>
+
+        <h3>📅 学习记录</h3>
+        <div class="calendar">
+          <div v-for="day in calendarDays" :key="day.date" 
+               :class="['calendar-day', { active: day.studied, today: day.isToday }]">
+            <div class="day-date">{{ day.day }}</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" @click="currentPage = 'study'">开始学习 🚀</button>
+      </div>
+
+      <!-- 单词本 -->
+      <div v-if="currentPage === 'words'" class="page-content">
+        <div class="search-bar">
+          <input type="text" v-model="searchWord" placeholder="搜索单词...">
+          <button class="btn-add" @click="showAddWord = true">+ 添加单词</button>
+        </div>
+        
+        <div class="words-list">
+          <div v-for="word in filteredWords" :key="word.id" class="word-card">
+            <div class="word-header">
+              <span class="word-text">{{ word.word }}</span>
+              <span v-if="word.phonetic" class="word-phonetic">{{ word.phonetic }}</span>
+            </div>
+            <p class="word-meaning">{{ word.meaning }}</p>
+            <p v-if="word.example" class="word-example">{{ word.example }}</p>
+            <div class="word-actions">
+              <button class="action-btn" @click="addToFavorites(word)">
+                {{ word.favorite ? '❤️' : '🤍' }}
+              </button>
+              <button class="action-btn" @click="editWord(word)">✏️</button>
+              <button class="action-btn delete" @click="deleteWord(word)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 背诵页面 -->
+      <div v-if="currentPage === 'study'" class="page-content">
+        <div v-if="!studying" class="study-start">
+          <h2>📝 背诵模式</h2>
+          <p>选择背诵范围：</p>
+          <div class="study-options">
+            <button class="option-btn" @click="startStudy('all')">全部单词</button>
+            <button class="option-btn" @click="startStudy('review')">需要复习</button>
+            <button class="option-btn" @click="startStudy('errors')">错题本</button>
+          </div>
+        </div>
+
+        <div v-else class="study-card" v-if="currentWord">
+          <div class="card-flip" @click="flipCard">
+            <div :class="['card-face', { flipped: showAnswer }]">
+              <div class="word-display">
+                <span class="big-word">{{ currentWord.word }}</span>
+                <span v-if="currentWord.phonetic" class="phonetic-text">{{ currentWord.phonetic }}</span>
+              </div>
+            </div>
+            <div :class="['card-face answer', { flipped: !showAnswer }]">
+              <div class="answer-display">
+                <p class="meaning-text">{{ currentWord.meaning }}</p>
+                <p v-if="currentWord.example" class="example-text">{{ currentWord.example }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="study-actions">
+            <button class="btn-wrong" @click="handleWrong">❌ 记错了</button>
+            <button class="btn-hard" @click="handleHard">😅 有点难</button>
+            <button class="btn-easy" @click="handleEasy">✅ 记住了</button>
+          </div>
+
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
+          </div>
+          <p class="progress-text">{{ currentIndex + 1 }} / {{ studyWords.length }}</p>
+        </div>
+
+        <div v-if="studying && !currentWord" class="study-complete">
+          <h2>🎉 学习完成！</h2>
+          <p>今日学习：{{ todayCount }} 个单词</p>
+          <button class="btn-primary" @click="studying = false">返回</button>
+        </div>
+      </div>
+
+      <!-- 错题本 -->
+      <div v-if="currentPage === 'errors'" class="page-content">
+        <h2>❌ 错题本</h2>
+        <div v-if="errorWords.length === 0" class="empty-state">
+          <p>暂无错题，继续保持！</p>
+        </div>
+        <div v-else class="words-list">
+          <div v-for="error in errorWords" :key="error.id" class="word-card error-card">
+            <div class="word-header">
+              <span class="word-text">{{ getWordById(error.word_id)?.word }}</span>
+              <span class="error-badge">错误 {{ error.error_count }} 次</span>
+            </div>
+            <p class="word-meaning">{{ getWordById(error.word_id)?.meaning }}</p>
+            <div class="word-actions">
+              <button class="action-btn" @click="removeFromErrors(error)">🗑️ 移除</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视频跟读 -->
+      <div v-if="currentPage === 'video'" class="page-content">
+        <h2>🎬 视频跟读</h2>
+        <div class="video-input">
+          <input type="text" v-model="videoUrl" placeholder="输入 YouTube 视频链接...">
+          <button class="btn-primary" @click="loadVideo">加载视频</button>
+        </div>
+        
+        <div v-if="videoLoaded" class="video-player">
+          <div class="video-container">
+            <iframe :src="embedUrl" frameborder="0" allowfullscreen></iframe>
+          </div>
+          <div class="video-controls">
+            <button @click="playSpeed = 0.5">0.5x</button>
+            <button @click="playSpeed = 0.75">0.75x</button>
+            <button :class="['speed-btn', { active: playSpeed === 1 }]" @click="playSpeed = 1">1x</button>
+            <button @click="playSpeed = 1.25">1.25x</button>
+            <button @click="playSpeed = 1.5">1.5x</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加/编辑单词弹窗 -->
+    <div v-if="showAddWord" class="modal-overlay" @click.self="closeModal">
+      <div class="modal">
+        <h3>{{ editingWord ? '编辑单词' : '添加单词' }}</h3>
+        <form @submit.prevent="saveWord">
+          <input type="text" v-model="newWord.word" placeholder="单词" required>
+          <input type="text" v-model="newWord.phonetic" placeholder="音标（可选）">
+          <textarea v-model="newWord.meaning" placeholder="释义" required></textarea>
+          <textarea v-model="newWord.example" placeholder="例句（可选）"></textarea>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" @click="closeModal">取消</button>
+            <button type="submit" class="btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
