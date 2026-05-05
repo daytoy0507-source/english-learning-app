@@ -4,11 +4,406 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>英语学习助手</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .auth-form { background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
+    .logo { font-size: 60px; margin-bottom: 20px; }
+    .auth-form h1 { color: #333; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    .tabs { display: flex; justify-content: center; margin-bottom: 30px; }
+    .tab-btn { padding: 10px 30px; border: none; background: #f0f0f0; cursor: pointer; font-size: 16px; }
+    .tab-btn:first-child { border-radius: 10px 0 0 10px; }
+    .tab-btn:last-child { border-radius: 0 10px 10px 0; }
+    .tab-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .form-group { margin-bottom: 20px; }
+    .form-group input { width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
+    .form-group input:focus { outline: none; border-color: #667eea; }
+    .btn-primary { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
+    .error { color: red; margin-top: 15px; }
+    .main-content { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .logo-text { font-size: 20px; font-weight: bold; }
+    .user-info { margin-right: 20px; }
+    .btn-logout { padding: 8px 20px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 20px; cursor: pointer; }
+    .nav { display: flex; border-bottom: 1px solid #eee; }
+    .nav-btn { flex: 1; padding: 15px; border: none; background: white; cursor: pointer; font-size: 14px; }
+    .nav-btn.active { background: #f5f5f5; border-bottom: 3px solid #667eea; color: #667eea; }
+    .page-content { padding: 30px; }
+    .page-content h2 { margin-bottom: 20px; color: #333; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; border-radius: 15px; text-align: center; }
+    .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
+    .stat-label { font-size: 14px; color: #666; margin-top: 5px; }
+    .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+    .search-bar input { flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; }
+    .btn-add { padding: 12px 25px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border: none; border-radius: 10px; cursor: pointer; }
+    .words-list { display: grid; grid-template-columns: repeat(2,1fr); gap: 15px; }
+    .word-card { background: #f9f9f9; padding: 20px; border-radius: 15px; border-left: 5px solid #667eea; }
+    .word-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .word-text { font-size: 20px; font-weight: bold; color: #333; }
+    .word-phonetic { color: #999; font-style: italic; }
+    .word-meaning { color: #666; margin-bottom: 10px; }
+    .word-example { color: #999; font-style: italic; font-size: 14px; }
+    .word-actions { display: flex; gap: 10px; margin-top: 15px; }
+    .action-btn { padding: 8px 12px; border: none; background: #e0e0e0; border-radius: 8px; cursor: pointer; font-size: 16px; }
+    .study-options { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
+    .option-btn { padding: 20px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 15px; font-size: 18px; cursor: pointer; }
+    .empty-state { text-align: center; padding: 60px; color: #999; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+    .modal { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; }
+    .modal h3 { margin-bottom: 20px; color: #333; }
+    .modal input, .modal textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; }
+    .modal textarea { min-height: 80px; }
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-cancel { flex: 1; padding: 12px; background: #e0e0e0; border: none; border-radius: 10px; cursor: pointer; }
+    .calendar { display: grid; grid-template-columns: repeat(7,1fr); gap: 10px; margin-bottom: 30px; }
+    .calendar-day { aspect-ratio: 1; background: #f5f5f5; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666; }
+    .calendar-day.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .calendar-day.today { border: 2px solid #667eea; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container" id="app"></div>
-  <script src="app.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://smdlwaoqfrrubiahnnh.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_UvNzTQcNqVDIywhcaYwaIQ_z5Hcv0p-';
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const app = {
+      user: null, isLogin: true, email: '', password: '', error: '', currentPage: 'home',
+      words: [], searchWord: '', showAddWord: false, editingWord: null,
+      newWord: { word: '', phonetic: '', meaning: '', example: '' },
+      studying: false, studyWords: [], currentIndex: 0, currentWord: null, showAnswer: false,
+      errorWords: [], videoUrl: '', videoLoaded: false, playSpeed: 1,
+      totalWords: 0, todayCount: 0, streakDays: 0, masteredWords: 0, calendarDays: []
+    };
+
+    async function init() {
+      const { data: { user } } = await client.auth.getUser();
+      if (user) { app.user = user; await loadUserData(); }
+      render();
+      client.auth.onAuthStateChange((_, session) => {
+        app.user = session?.user || null;
+        if (app.user) loadUserData();
+        render();
+      });
+    }
+
+    function render() {
+      const container = document.getElementById('app');
+      if (!app.user) {
+        container.innerHTML = `
+          <div class="auth-form">
+            <div class="logo">📚</div>
+            <h1>英语学习助手</h1>
+            <p class="subtitle">轻松背单词，快乐学英语</p>
+            <div class="tabs">
+              <button class="tab-btn ${app.isLogin ? 'active' : ''}" onclick="app.isLogin=true;app.error='';render()">${app.isLogin?'登录':'注册'}</button>
+              <button class="tab-btn ${!app.isLogin ? 'active' : ''}" onclick="app.isLogin=false;app.error='';render()">${!app.isLogin?'注册':'登录'}</button>
+            </div>
+            <form onsubmit="handleAuth(event)">
+              <div class="form-group"><input type="email" value="${app.email}" oninput="app.email=this.value" placeholder="邮箱" required></div>
+              <div class="form-group"><input type="password" value="${app.password}" oninput="app.password=this.value" placeholder="密码" required></div>
+              <button type="submit" class="btn-primary">${app.isLogin?'登录':'注册'}</button>
+            </form>
+            ${app.error ? `<p class="error">${app.error}</p>` : ''}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="main-content">
+          <header class="header">
+            <span class="logo-text">📚 英语学习助手</span>
+            <div><span class="user-info">👤 ${app.user.email}</span><button class="btn-logout" onclick="logout()">退出</button></div>
+          </header>
+          <nav class="nav">
+            <button class="nav-btn ${app.currentPage=='home'?'active':''}" onclick="navigate('home')">🏠 首页</button>
+            <button class="nav-btn ${app.currentPage=='words'?'active':''}" onclick="navigate('words')">📖 单词本</button>
+            <button class="nav-btn ${app.currentPage=='study'?'active':''}" onclick="navigate('study')">📝 背诵</button>
+            <button class="nav-btn ${app.currentPage=='errors'?'active':''}" onclick="navigate('errors')">❌ 错题本</button>
+            <button class="nav-btn ${app.currentPage=='video'?'active':''}" onclick="navigate('video')">🎬 视频</button>
+          </nav>
+          ${renderHome()}
+          ${renderWords()}
+          ${renderStudy()}
+          ${renderErrors()}
+          ${renderVideo()}
+        </div>
+        ${renderModal()}
+      `;
+    }
+
+    function renderHome() {
+      if (app.currentPage !== 'home') return '';
+      return `
+        <div class="page-content">
+          <h2>📊 学习统计</h2>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">${app.totalWords}</div><div class="stat-label">单词总数</div></div>
+            <div class="stat-card"><div class="stat-number">${app.todayCount}</div><div class="stat-label">今日学习</div></div>
+            <div class="stat-card"><div class="stat-number">${app.streakDays}</div><div class="stat-label">连续打卡</div></div>
+            <div class="stat-card"><div class="stat-number">${app.masteredWords}</div><div class="stat-label">已掌握</div></div>
+          </div>
+          <h3>📅 学习记录</h3>
+          <div class="calendar">
+            ${app.calendarDays.map(d => `<div class="calendar-day ${d.studied?'active':''} ${d.isToday?'today':''}"><div>${d.day}</div></div>`).join('')}
+          </div>
+          <button class="btn-primary" onclick="navigate('study')">开始学习 🚀</button>
+        </div>
+      `;
+    }
+
+    function renderWords() {
+      if (app.currentPage !== 'words') return '';
+      const filtered = app.words.filter(w => !app.searchWord || w.word.toLowerCase().includes(app.searchWord.toLowerCase()));
+      return `
+        <div class="page-content">
+          <div class="search-bar">
+            <input type="text" value="${app.searchWord}" oninput="app.searchWord=this.value;render()" placeholder="搜索单词...">
+            <button class="btn-add" onclick="showAddWordModal()">+ 添加单词</button>
+          </div>
+          <div class="words-list">
+            ${filtered.map(w => `
+              <div class="word-card">
+                <div class="word-header"><span class="word-text">${w.word}</span>${w.phonetic?`<span class="word-phonetic">${w.phonetic}</span>`:''}</div>
+                <p class="word-meaning">${w.meaning}</p>
+                ${w.example?`<p class="word-example">${w.example}</p>`:''}
+                <div class="word-actions">
+                  <button class="action-btn" onclick="toggleFavorite('${w.id}')">${w.favorite?'❤️':'🤍'}</button>
+                  <button class="action-btn" onclick="editWord('${w.id}')">✏️</button>
+                  <button class="action-btn" onclick="deleteWord('${w.id}')">🗑️</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          ${filtered.length===0?'<p class="empty-state">暂无单词</p>':''}
+        </div>
+      `;
+    }
+
+    function renderStudy() {
+      if (app.currentPage !== 'study') return '';
+      if (!app.studying) {
+        return `
+          <div class="page-content">
+            <h2>📝 背诵模式</h2>
+            <p>选择背诵范围：</p>
+            <div class="study-options">
+              <button class="option-btn" onclick="startStudy('all')">全部单词</button>
+              <button class="option-btn" onclick="startStudy('review')">需要复习</button>
+              <button class="option-btn" onclick="startStudy('errors')">错题本</button>
+            </div>
+          </div>
+        `;
+      }
+      if (!app.currentWord) {
+        return `<div class="page-content"><div class="empty-state"><h2>🎉 完成！</h2><button class="btn-primary" onclick="app.studying=false;app.currentIndex=0;render()">返回</button></div></div>`;
+      }
+      return `
+        <div class="page-content">
+          <div style="text-align:center;padding:40px;">
+            <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:60px;border-radius:20px;color:white;">
+              <div style="font-size:48px;font-weight:bold;">${app.currentWord.word}</div>
+              ${app.currentWord.phonetic?`<div style="font-size:20px;margin-top:10px;">${app.currentWord.phonetic}</div>`:''}
+            </div>
+            <div style="margin-top:20px;color:#667eea;font-size:18px;">点击卡片查看释义</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderErrors() {
+      if (app.currentPage !== 'errors') return '';
+      return `
+        <div class="page-content">
+          <h2>❌ 错题本</h2>
+          ${app.errorWords.length===0?'<p class="empty-state">暂无错题</p>':`
+            <div class="words-list">
+              ${app.errorWords.map(e => {
+                const w = app.words.find(x => x.id === e.word_id);
+                return `<div class="word-card" style="border-left-color:#ff6b6b;">
+                  <div class="word-header"><span class="word-text">${w?.word||'未知'}</span></div>
+                  <p class="word-meaning">${w?.meaning||''}</p>
+                  <button class="action-btn" onclick="removeFromErrors('${e.id}')">🗑️ 移除</button>
+                </div>`;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderVideo() {
+      if (app.currentPage !== 'video') return '';
+      return `<div class="page-content"><h2>🎬 视频跟读</h2><p class="empty-state">功能开发中...</p></div>`;
+    }
+
+    function renderModal() {
+      if (!app.showAddWord) return '';
+      return `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal" onclick="event.stopPropagation()">
+            <h3>${app.editingWord?'编辑单词':'添加单词'}</h3>
+            <form onsubmit="saveWord(event)">
+              <input type="text" value="${app.newWord.word}" oninput="app.newWord.word=this.value" placeholder="单词" required>
+              <input type="text" value="${app.newWord.phonetic}" oninput="app.newWord.phonetic=this.value" placeholder="音标">
+              <textarea value="${app.newWord.meaning}" oninput="app.newWord.meaning=this.value" placeholder="释义" required></textarea>
+              <textarea value="${app.newWord.example}" oninput="app.newWord.example=this.value" placeholder="例句"></textarea>
+              <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal()">取消</button>
+                <button type="submit" class="btn-primary">保存</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      app.error = '';
+      try {
+        const { data, error } = app.isLogin 
+          ? await client.auth.signInWithPassword({ email: app.email, password: app.password })
+          : await client.auth.signUp({ email: app.email, password: app.password });
+        if (error) throw error;
+        app.user = data.user;
+        await loadUserData();
+      } catch (err) { app.error = err.message; }
+      render();
+    }
+
+    async function logout() {
+      await client.auth.signOut();
+      app.user = null;
+      render();
+    }
+
+    function navigate(page) {
+      app.currentPage = page;
+      if (page === 'words') loadWords();
+      if (page === 'errors') loadErrorWords();
+      if (page === 'home') loadStats();
+      render();
+    }
+
+    function showAddWordModal() {
+      app.editingWord = null;
+      app.newWord = { word: '', phonetic: '', meaning: '', example: '' };
+      app.showAddWord = true;
+      render();
+    }
+
+    function closeModal() {
+      app.showAddWord = false;
+      app.editingWord = null;
+      render();
+    }
+
+    async function saveWord(e) {
+      e.preventDefault();
+      try {
+        if (app.editingWord) {
+          await client.from('words').update(app.newWord).eq('id', app.editingWord);
+        } else {
+          await client.from('words').insert({ ...app.newWord, level: 0, favorite: false });
+        }
+        closeModal();
+        await loadWords();
+      } catch (err) { app.error = err.message; }
+      render();
+    }
+
+    async function editWord(id) {
+      const w = app.words.find(x => x.id === id);
+      if (w) { app.editingWord = id; app.newWord = { ...w }; app.showAddWord = true; render(); }
+    }
+
+    async function deleteWord(id) {
+      if (confirm('确定删除？')) {
+        await client.from('words').delete().eq('id', id);
+        await loadWords();
+        render();
+      }
+    }
+
+    async function toggleFavorite(id) {
+      const w = app.words.find(x => x.id === id);
+      if (w) { await client.from('words').update({ favorite: !w.favorite }).eq('id', id); w.favorite = !w.favorite; render(); }
+    }
+
+    async function startStudy(type) {
+      app.studying = true;
+      app.currentIndex = 0;
+      let temp = [...app.words];
+      if (type === 'review') temp = temp.filter(w => !w.last_studied || w.last_studied !== new Date().toISOString().split('T')[0]);
+      if (type === 'errors') temp = temp.filter(w => app.errorWords.some(e => e.word_id === w.id));
+      app.studyWords = temp.sort(() => Math.random() - 0.5).slice(0, 20);
+      app.currentWord = app.studyWords[0];
+      render();
+    }
+
+    async function removeFromErrors(id) {
+      await client.from('error_words').delete().eq('id', id);
+      await loadErrorWords();
+      render();
+    }
+
+    async function loadWords() {
+      const { data } = await client.from('words').select('*').order('created_at', { ascending: false });
+      app.words = data || [];
+      app.totalWords = app.words.length;
+      app.masteredWords = app.words.filter(w => (w.level || 0) >= 4).length;
+    }
+
+    async function loadErrorWords() {
+      const { data } = await client.from('error_words').select('*');
+      app.errorWords = data || [];
+    }
+
+    async function loadStats() {
+      await loadWords();
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayLog } = await client.from('study_log').select('words_count').eq('study_date', today).single();
+      app.todayCount = todayLog?.words_count || 0;
+      const { data: logs } = await client.from('study_log').select('study_date').order('study_date', { ascending: false });
+      let streak = 0;
+      const todayDate = new Date();
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(todayDate);
+        d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split('T')[0];
+        if (logs?.some(l => l.study_date === ds)) streak++;
+        else if (i > 0) break;
+      }
+      app.streakDays = streak;
+      generateCalendar();
+    }
+
+    function generateCalendar() {
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      app.calendarDays = [];
+      for (let i = 0; i < firstDay.getDay(); i++) app.calendarDays.push({ day: '', studied: false });
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth(), i);
+        app.calendarDays.push({ day: i, studied: Math.random() > 0.4, isToday: d.toDateString() === today.toDateString() });
+      }
+    }
+
+    async function loadUserData() {
+      await loadWords();
+      await loadErrorWords();
+      await loadStats();
+    }
+
+    init();
+  </script>
 </body>
 </html>
